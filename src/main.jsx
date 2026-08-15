@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import StorefrontV3 from './StorefrontV3.jsx'
 import AdminV3 from './AdminV3.jsx'
 import PaymentsAdmin from './PaymentsAdmin.jsx'
+import OrderTracking from './OrderTracking.jsx'
 import './styles.css'
 import './v2.css'
 import './storefront.css'
@@ -10,6 +11,7 @@ import './mobile-storefront.css'
 import './checkout-v3.css'
 import './admin.css'
 import './payments.css'
+import './tracking.css'
 
 function Root() {
   const [locationKey, setLocationKey] = useState(`${window.location.search}${window.location.hash}`)
@@ -25,14 +27,16 @@ function Root() {
   }, [])
 
   const paymentRoute = window.location.hash.startsWith('#/payments')
+  const trackingRoute = window.location.hash.startsWith('#/suivi')
   const adminFromQuery = new URLSearchParams(window.location.search).get('admin') === '1'
   const adminFromHash = window.location.hash.startsWith('#/admin')
 
   if (paymentRoute) return <PaymentsAdmin />
+  if (trackingRoute) return <OrderTracking />
   if (adminFromQuery || adminFromHash) {
     return <><AdminV3 /><a className="payment-hub-fab" href="#/payments">Paiements Mobile Money</a></>
   }
-  return <StorefrontV3 key={locationKey.startsWith('#/produit/') ? locationKey : 'store'} />
+  return <><StorefrontV3 key={locationKey.startsWith('#/produit/') ? locationKey : 'store'} /><a className="tracking-fab" href="#/suivi">Suivre ma commande</a></>
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
