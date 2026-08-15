@@ -1,335 +1,188 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  BookOpen,
-  CheckCircle2,
-  Code2,
-  Copy,
-  Menu,
-  Music2,
-  Search,
-  ShieldCheck,
-  ShoppingBag,
-  Sparkles,
-  Trash2,
-  X,
+  BookOpen, CheckCircle2, Code2, Copy, Mail, Menu, MessageCircle,
+  Music2, Search, ShieldCheck, ShoppingBag, Sparkles, Trash2, X,
 } from 'lucide-react'
-import { products, storeConfig } from './storeConfig.js'
+import { supabase } from './supabase.js'
 
-const FILTERS = [
-  ['all', 'Tout'],
-  ['ebook', 'E-books'],
-  ['music', 'Musiques'],
-  ['service', 'Services'],
-]
+const FILTERS = [['all','Tout'],['ebook','E-books'],['music','Musiques'],['service','Services'],['pack','Packs']]
+const iconMap = { ebook: BookOpen, music: Music2, service: Code2, pack: Sparkles }
 
-const iconMap = {
-  book: BookOpen,
-  sparkles: Sparkles,
-  code: Code2,
-  music: Music2,
-}
-
-const money = (value) =>
-  new Intl.NumberFormat(storeConfig.locale, {
-    style: 'currency',
-    currency: storeConfig.currency,
-  }).format(value)
-
-const buildOrderId = () => {
-  const date = new Date()
-  const stamp = [
-    String(date.getFullYear()).slice(-2),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0'),
-  ].join('')
-  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase()
-  return `ND-${stamp}-${suffix}`
-}
+const formatMoney = (value, currency = 'USD') => new Intl.NumberFormat('fr-FR', {
+  style: 'currency', currency,
+}).format(Number(value || 0))
 
 export default function App() {
+  const [products, setProducts] = useState([])
+  const [settings, setSettings] = useState({ brand_name:'NadDigital', tagline:'Des créations numériques pensées pour vous faire avancer.', currency:'USD' })
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [order, setOrder] = useState(null)
+  const [notice, setNotice] = useState('')
+  const [paymentReference, setPaymentReference] = useState('')
   const [cart, setCart] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('naddigital-cart')) || []
-    } catch {
-      return []
-    }
+    try { return JSON.parse(localStorage.getItem('naddigital-cart') || '[]') } catch { return [] }
   })
 
   useEffect(() => {
-    localStorage.setItem('naddigital-cart', JSON.stringify(cart))
-  }, [cart])
+    const load = async () => {
+      const [{ data: productRows }, { data: config }] = await Promise.all([
+        supabase.from('products').select('id,slug,type,title,short_description,description,price,currency,cover_url,preview_url,featured,status').eq('status','published').order('featured',{ascending:false}).order('created_at',{ascending:false}),
+        supabase.from('store_settings').select('*').eq('id',1).single(),
+      ])
+      setProducts(productRows || [])
+      if (config) setSettings(config)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  useEffect(() => localStorage.setItem('naddigital-cart', JSON.stringify(cart)), [cart])
 
   const visibleProducts = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return products.filter((product) => {
-      const categoryMatches = filter === 'all' || product.type === filter
-      const textMatches = !q || `${product.title} ${product.description}`.toLowerCase().includes(q)
-      return categoryMatches && textMatches
-    })
-  }, [filter, query])
+    return products.filter(p => (filter === 'all' || p.type === filter) && (!q || `${p.title} ${p.short_description} ${p.description}`.toLowerCase().includes(q)))
+  }, [products, filter, query])
 
-  const cartItems = cart
-    .map((entry) => ({ ...products.find((item) => item.id === entry.id), quantity: entry.quantity }))
-    .filter((item) => item.id)
+  const cartItems = cart.map(entry => ({ ...products.find(p => p.id === entry.id), quantity: entry.quantity })).filter(p => p.id)
+  const cartCount = cart.reduce((sum, p) => sum + p.quantity, 0)
+  const total = cartItems.reduce((sum, p) => sum + Number(p.price) * p.quantity, 0)
+  const cartCurrency = cartItems[0]?.currency || settings.currency || 'USD'
 
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0)
-  const total = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-
-  const addToCart = (product) => {
-    setCart((current) => {
-      const existing = current.find((item) => item.id === product.id)
-      if (existing) {
-        return current.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
-        )
-      }
-      return [...current, { id: product.id, quantity: 1 }]
+  const addToCart = product => {
+    setCart(current => {
+      const found = current.find(i => i.id === product.id)
+      return found ? current.map(i => i.id === product.id ? {...i, quantity:i.quantity+1} : i) : [...current,{id:product.id,quantity:1}]
     })
     setCartOpen(true)
   }
 
-  const removeFromCart = (id) => setCart((current) => current.filter((item) => item.id !== id))
+  const removeFromCart = id => setCart(c => c.filter(i => i.id !== id))
 
-  const createOrder = (event) => {
+  const createOrder = async event => {
     event.preventDefault()
+    setNotice('')
     const form = new FormData(event.currentTarget)
-    const methodId = form.get('paymentMethod')
-    const paymentMethod = storeConfig.paymentMethods.find((method) => method.id === methodId)
-    const nextOrder = {
-      id: buildOrderId(),
-      createdAt: new Date().toISOString(),
-      customer: {
-        name: form.get('name'),
-        contact: form.get('contact'),
-      },
-      paymentMethod,
-      items: cartItems,
-      total,
-      status: 'En attente de paiement',
+    const customerName = String(form.get('name') || '').trim()
+    const customerContact = String(form.get('contact') || '').trim()
+    const paymentMethod = String(form.get('paymentMethod') || 'manual')
+    const { data, error } = await supabase.functions.invoke('create-order', {
+      body: { customerName, customerContact, paymentMethod, items: cart.map(i => ({ id:i.id, quantity:i.quantity })) },
+    })
+    if (error || data?.error) {
+      setNotice(data?.error || error?.message || 'Impossible de créer la commande.')
+      return
     }
-
-    const existingOrders = JSON.parse(localStorage.getItem('naddigital-orders') || '[]')
-    localStorage.setItem('naddigital-orders', JSON.stringify([nextOrder, ...existingOrders]))
-    setOrder(nextOrder)
+    const payment = paymentMethod === 'airtel_money'
+      ? { label:'Airtel Money', number:settings.airtel_money_number, name:settings.airtel_money_name }
+      : paymentMethod === 'mpesa'
+        ? { label:'M-Pesa', number:settings.mpesa_number, name:settings.mpesa_name }
+        : { label:'Confirmation avec le vendeur', number:null, name:null }
+    setOrder({ ...data.order, customerContact, payment })
     setCart([])
     setCheckoutOpen(false)
     setCartOpen(false)
   }
 
-  const copyOrder = async () => {
-    if (!order) return
-    const lines = [
-      `Commande ${order.id}`,
-      `Client : ${order.customer.name}`,
-      ...order.items.map((item) => `- ${item.title} x${item.quantity}`),
-      `Total : ${money(order.total)}`,
-      `Paiement : ${order.paymentMethod?.label || 'Non défini'}`,
-    ]
-    await navigator.clipboard.writeText(lines.join('\n'))
+  const submitReference = async event => {
+    event.preventDefault()
+    setNotice('')
+    const { data, error } = await supabase.functions.invoke('submit-payment-reference', {
+      body: { orderNumber:order.order_number, contact:order.customerContact, reference:paymentReference },
+    })
+    if (error || data?.error) return setNotice(data?.error || error?.message || 'Référence non enregistrée.')
+    setNotice('Référence de paiement enregistrée. La vérification peut maintenant commencer.')
+    setOrder(current => ({...current, payment_status:'submitted'}))
   }
+
+  const sendInquiry = async event => {
+    event.preventDefault()
+    setNotice('')
+    const form = new FormData(event.currentTarget)
+    const { error } = await supabase.from('inquiries').insert({
+      name:String(form.get('name')||'').trim(),
+      contact:String(form.get('contact')||'').trim(),
+      subject:String(form.get('subject')||'').trim(),
+      message:String(form.get('message')||'').trim(),
+    })
+    if (error) return setNotice('Impossible d’envoyer le message pour le moment.')
+    event.currentTarget.reset()
+    setNotice('Message envoyé à NadDigital.')
+  }
+
+  const whatsappHref = settings.whatsapp ? `https://wa.me/${String(settings.whatsapp).replace(/\D/g,'')}` : null
+  const paymentConfigured = Boolean(settings.airtel_money_number || settings.mpesa_number)
 
   return (
     <div className="app-shell">
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="NadDigital accueil">
-          <span className="brand-mark">N</span>
-          <span>NadDigital</span>
-        </a>
-
-        <nav className={mobileNavOpen ? 'nav-links open' : 'nav-links'} aria-label="Navigation principale">
-          <a href="#shop" onClick={() => setMobileNavOpen(false)}>Boutique</a>
-          <a href="#why" onClick={() => setMobileNavOpen(false)}>Pourquoi nous</a>
-          <a href="#contact" onClick={() => setMobileNavOpen(false)}>Contact</a>
+        <a className="brand" href="#top"><span className="brand-mark">N</span><span>{settings.brand_name || 'NadDigital'}</span></a>
+        <nav className={mobileNavOpen ? 'nav-links open' : 'nav-links'}>
+          <a href="#shop" onClick={()=>setMobileNavOpen(false)}>Boutique</a>
+          <a href="#services" onClick={()=>setMobileNavOpen(false)}>Fonctionnement</a>
+          <a href="#contact" onClick={()=>setMobileNavOpen(false)}>Contact</a>
         </nav>
-
         <div className="header-actions">
-          <button className="icon-button mobile-menu" onClick={() => setMobileNavOpen((value) => !value)} aria-label="Menu">
-            {mobileNavOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-          <button className="cart-button" onClick={() => setCartOpen(true)}>
-            <ShoppingBag size={19} />
-            <span>Panier</span>
-            <strong>{cartCount}</strong>
-          </button>
+          <button className="icon-button mobile-menu" onClick={()=>setMobileNavOpen(v=>!v)}>{mobileNavOpen?<X size={20}/>:<Menu size={20}/>}</button>
+          <button className="cart-button" onClick={()=>setCartOpen(true)}><ShoppingBag size={19}/><span>Panier</span><strong>{cartCount}</strong></button>
         </div>
       </header>
 
       <main id="top">
-        <section className="hero section-wrap">
+        <section className="hero section-wrap hero-v2">
           <div className="hero-copy">
-            <span className="eyebrow"><Sparkles size={15} /> Créations numériques • RDC & international</span>
-            <h1>Des idées numériques qui deviennent <span>utiles.</span></h1>
-            <p>{storeConfig.tagline} Découvrez des e-books, des créations musicales et des services conçus avec soin.</p>
-            <div className="hero-actions">
-              <a className="primary-button" href="#shop">Découvrir la boutique</a>
-              <a className="secondary-button" href="#contact">Parler d’un projet</a>
-            </div>
-            <div className="trust-row">
-              <span><ShieldCheck size={17} /> Commande claire</span>
-              <span><CheckCircle2 size={17} /> Paiement vérifié</span>
-              <span><Sparkles size={17} /> Livraison numérique</span>
-            </div>
+            <span className="eyebrow"><Sparkles size={15}/> Boutique créative • RDC & international</span>
+            <h1>Des créations qui ont une <span>vraie valeur.</span></h1>
+            <p>{settings.tagline}</p>
+            <div className="hero-actions"><a className="primary-button" href="#shop">Explorer le catalogue</a><a className="secondary-button" href="#contact">Demander un service</a></div>
+            <div className="trust-row"><span><ShieldCheck size={17}/> Commandes sécurisées</span><span><CheckCircle2 size={17}/> Suivi du paiement</span><span><Sparkles size={17}/> Livraison numérique</span></div>
           </div>
-          <div className="hero-card" aria-hidden="true">
-            <div className="glow-card card-a"><BookOpen /></div>
-            <div className="glow-card card-b"><Music2 /></div>
-            <div className="glow-card card-c"><Code2 /></div>
-            <div className="hero-orbit">NadDigital</div>
+          <div className="showcase-stack">
+            <div className="showcase-main"><span>NadDigital</span><strong>E-books • Musique • Services</strong><small>Une seule boutique pour découvrir, commander et entrer en contact.</small></div>
+            <div className="showcase-chip chip-one"><BookOpen/> E-books</div>
+            <div className="showcase-chip chip-two"><Music2/> Musique</div>
+            <div className="showcase-chip chip-three"><Code2/> Services</div>
           </div>
         </section>
 
         <section id="shop" className="shop-section section-wrap">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">Catalogue</span>
-              <h2>Choisissez ce qui vous fait avancer.</h2>
-            </div>
-            <div className="search-box">
-              <Search size={18} />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher un produit…" aria-label="Rechercher" />
-            </div>
-          </div>
-
-          <div className="filter-row" role="group" aria-label="Filtrer le catalogue">
-            {FILTERS.map(([value, label]) => (
-              <button key={value} className={filter === value ? 'filter active' : 'filter'} onClick={() => setFilter(value)}>{label}</button>
-            ))}
-          </div>
-
-          <div className="product-grid">
-            {visibleProducts.map((product) => {
-              const Icon = iconMap[product.icon] || Sparkles
-              return (
-                <article className="product-card" key={product.id}>
-                  <div className={`product-visual visual-${product.type}`}>
-                    <span className="product-badge">{product.badge}</span>
-                    <Icon size={52} strokeWidth={1.5} />
-                  </div>
-                  <div className="product-body">
-                    <h3>{product.title}</h3>
-                    <p>{product.description}</p>
-                    <div className="product-footer">
-                      <div className="price-wrap">
-                        <strong>{money(product.price)}</strong>
-                        {product.priceIsPlaceholder && <small>prix provisoire</small>}
-                      </div>
-                      <button className="add-button" onClick={() => addToCart(product)}>Ajouter</button>
-                    </div>
-                  </div>
-                </article>
-              )
+          <div className="section-heading"><div><span className="eyebrow">Catalogue en direct</span><h2>Choisissez votre prochaine ressource.</h2></div><div className="search-box"><Search size={18}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher…"/></div></div>
+          <div className="filter-row">{FILTERS.map(([v,l])=><button key={v} className={filter===v?'filter active':'filter'} onClick={()=>setFilter(v)}>{l}</button>)}</div>
+          {loading ? <div className="empty-state">Chargement du catalogue…</div> : <div className="product-grid">
+            {visibleProducts.map(product => {
+              const Icon = iconMap[product.type] || Sparkles
+              return <article className="product-card product-card-v2" key={product.id}>
+                <div className={`product-visual visual-${product.type}`}>{product.cover_url ? <img className="product-cover" src={product.cover_url} alt={product.title}/> : <Icon size={54} strokeWidth={1.4}/>}<span className="product-badge">{product.type}</span>{product.featured&&<span className="featured-badge">À la une</span>}</div>
+                <div className="product-body"><h3>{product.title}</h3><p>{product.short_description || product.description}</p>{product.preview_url && <a className="preview-link" href={product.preview_url} target="_blank" rel="noreferrer">Voir / écouter l’aperçu</a>}<div className="product-footer"><strong>{formatMoney(product.price,product.currency)}</strong><button className="add-button" onClick={()=>addToCart(product)}>Ajouter</button></div></div>
+              </article>
             })}
-          </div>
-
-          {visibleProducts.length === 0 && <div className="empty-state">Aucun produit ne correspond à votre recherche.</div>}
+          </div>}
+          {!loading && visibleProducts.length===0 && <div className="empty-state">Aucun produit ne correspond à votre recherche.</div>}
         </section>
 
-        <section id="why" className="why-section section-wrap">
-          <div className="section-heading compact">
-            <div>
-              <span className="eyebrow">Une expérience simple</span>
-              <h2>De la découverte à la livraison.</h2>
-            </div>
-          </div>
-          <div className="steps-grid">
-            <div className="step-card"><span>01</span><h3>Choisissez</h3><p>Ajoutez vos e-books, musiques ou services au panier.</p></div>
-            <div className="step-card"><span>02</span><h3>Commandez</h3><p>Renseignez votre nom, votre contact et le moyen de paiement choisi.</p></div>
-            <div className="step-card"><span>03</span><h3>Payez</h3><p>Suivez les instructions Mobile Money affichées avec votre numéro de commande.</p></div>
-            <div className="step-card"><span>04</span><h3>Recevez</h3><p>Après vérification, votre produit numérique ou votre service peut être livré.</p></div>
-          </div>
+        <section id="services" className="why-section section-wrap">
+          <div className="section-heading compact"><div><span className="eyebrow">Simple et transparent</span><h2>De la découverte à la livraison.</h2></div></div>
+          <div className="steps-grid"><div className="step-card"><span>01</span><h3>Découvrez</h3><p>Consultez les produits publiés directement depuis la base NadDigital.</p></div><div className="step-card"><span>02</span><h3>Commandez</h3><p>Le serveur recalcule les prix pour éviter toute manipulation côté navigateur.</p></div><div className="step-card"><span>03</span><h3>Payez</h3><p>Airtel Money, M-Pesa ou confirmation manuelle selon les moyens configurés.</p></div><div className="step-card"><span>04</span><h3>Suivez</h3><p>Envoyez la référence de transaction puis attendez la validation de la commande.</p></div></div>
         </section>
 
-        <section id="contact" className="contact-section section-wrap">
-          <div>
-            <span className="eyebrow">Projet personnalisé</span>
-            <h2>Vous avez besoin de quelque chose de spécifique ?</h2>
-            <p>Utilisez la boutique pour les offres standards. Les coordonnées de contact seront activées ici dès qu’elles seront configurées.</p>
-          </div>
-          <a className="secondary-button disabled-link" href="#shop">Voir les services</a>
+        <section id="contact" className="contact-hub section-wrap">
+          <div className="contact-copy"><span className="eyebrow">Contact & références</span><h2>Besoin d’un produit personnalisé ou d’un renseignement ?</h2><p>Contactez NadDigital directement ou envoyez une demande depuis le formulaire.</p><div className="contact-links">{settings.support_email && <a href={`mailto:${settings.support_email}`}><Mail size={18}/><span><small>E-mail</small><strong>{settings.support_email}</strong></span></a>}{whatsappHref && <a href={whatsappHref} target="_blank" rel="noreferrer"><MessageCircle size={18}/><span><small>WhatsApp</small><strong>{settings.whatsapp}</strong></span></a>}</div></div>
+          <form className="contact-form" onSubmit={sendInquiry}><label>Votre nom<input name="name" required/></label><label>E-mail ou WhatsApp<input name="contact" required/></label><label>Objet<input name="subject" placeholder="Ex. création d’un site web"/></label><label>Message<textarea name="message" rows="5" required/></label><button className="primary-button" type="submit">Envoyer la demande</button></form>
         </section>
+        {notice && <div className="global-notice section-wrap">{notice}</div>}
       </main>
 
-      <footer className="footer section-wrap">
-        <div className="brand"><span className="brand-mark">N</span><span>NadDigital</span></div>
-        <p>© {new Date().getFullYear()} NadDigital. Boutique numérique.</p>
-      </footer>
+      <footer className="footer section-wrap"><div className="brand"><span className="brand-mark">N</span><span>NadDigital</span></div><p>© {new Date().getFullYear()} NadDigital.</p><a className="owner-link" href="#/admin"><ShieldCheck size={15}/> Espace propriétaire</a></footer>
 
-      {cartOpen && (
-        <div className="overlay" onMouseDown={(event) => event.target === event.currentTarget && setCartOpen(false)}>
-          <aside className="drawer" aria-label="Panier">
-            <div className="drawer-header"><div><span className="eyebrow">Votre sélection</span><h2>Panier</h2></div><button className="icon-button" onClick={() => setCartOpen(false)} aria-label="Fermer"><X /></button></div>
-            <div className="cart-list">
-              {cartItems.length === 0 ? (
-                <div className="empty-cart"><ShoppingBag size={42} /><h3>Votre panier est vide.</h3><p>Ajoutez un produit pour commencer.</p></div>
-              ) : cartItems.map((item) => (
-                <div className="cart-item" key={item.id}>
-                  <div><strong>{item.title}</strong><span>{item.quantity} × {money(item.price)}</span></div>
-                  <button className="icon-button danger" onClick={() => removeFromCart(item.id)} aria-label={`Supprimer ${item.title}`}><Trash2 size={18} /></button>
-                </div>
-              ))}
-            </div>
-            {cartItems.length > 0 && (
-              <div className="cart-summary">
-                <div><span>Total</span><strong>{money(total)}</strong></div>
-                <p>Les prix actuels du catalogue sont provisoires et seront remplacés avant la mise en vente officielle.</p>
-                <button className="primary-button full" onClick={() => setCheckoutOpen(true)}>Passer la commande</button>
-              </div>
-            )}
-          </aside>
-        </div>
-      )}
+      {cartOpen && <div className="overlay" onMouseDown={e=>e.target===e.currentTarget&&setCartOpen(false)}><aside className="drawer"><div className="drawer-header"><div><span className="eyebrow">Votre sélection</span><h2>Panier</h2></div><button className="icon-button" onClick={()=>setCartOpen(false)}><X/></button></div><div className="cart-list">{cartItems.length===0?<div className="empty-cart"><ShoppingBag size={40}/><h3>Panier vide</h3></div>:cartItems.map(item=><div className="cart-item" key={item.id}><div><strong>{item.title}</strong><span>{item.quantity} × {formatMoney(item.price,item.currency)}</span></div><button className="icon-button danger" onClick={()=>removeFromCart(item.id)}><Trash2 size={18}/></button></div>)}</div>{cartItems.length>0&&<div className="cart-summary"><div><span>Total</span><strong>{formatMoney(total,cartCurrency)}</strong></div><button className="primary-button full" onClick={()=>setCheckoutOpen(true)}>Passer commande</button></div>}</aside></div>}
 
-      {checkoutOpen && (
-        <div className="overlay modal-layer">
-          <div className="checkout-modal">
-            <div className="drawer-header"><div><span className="eyebrow">Finaliser</span><h2>Votre commande</h2></div><button className="icon-button" onClick={() => setCheckoutOpen(false)} aria-label="Fermer"><X /></button></div>
-            <form onSubmit={createOrder}>
-              <label>Nom complet<input name="name" required placeholder="Votre nom" /></label>
-              <label>E-mail ou WhatsApp<input name="contact" required placeholder="Votre contact" /></label>
-              <fieldset>
-                <legend>Moyen de paiement</legend>
-                {storeConfig.paymentMethods.map((method, index) => (
-                  <label className="payment-option" key={method.id}>
-                    <input type="radio" name="paymentMethod" value={method.id} defaultChecked={index === 0} />
-                    <span><strong>{method.label}</strong><small>{method.number}</small></span>
-                  </label>
-                ))}
-              </fieldset>
-              <div className="checkout-total"><span>Total</span><strong>{money(total)}</strong></div>
-              <p className="form-note">Aucune donnée bancaire n’est enregistrée par NadDigital. Le paiement Mobile Money sera confirmé séparément.</p>
-              <button className="primary-button full" type="submit">Créer la commande</button>
-            </form>
-          </div>
-        </div>
-      )}
+      {checkoutOpen && <div className="overlay modal-layer"><div className="checkout-modal"><div className="drawer-header"><div><span className="eyebrow">Finaliser</span><h2>Commande</h2></div><button className="icon-button" onClick={()=>setCheckoutOpen(false)}><X/></button></div><form onSubmit={createOrder}><label>Nom complet<input name="name" required/></label><label>E-mail ou WhatsApp<input name="contact" required/></label><fieldset><legend>Moyen de paiement</legend><label className="payment-option"><input type="radio" name="paymentMethod" value="airtel_money" disabled={!settings.airtel_money_number}/><span><strong>Airtel Money</strong><small>{settings.airtel_money_number || 'À configurer par le vendeur'}</small></span></label><label className="payment-option"><input type="radio" name="paymentMethod" value="mpesa" disabled={!settings.mpesa_number}/><span><strong>M-Pesa</strong><small>{settings.mpesa_number || 'À configurer par le vendeur'}</small></span></label><label className="payment-option"><input type="radio" name="paymentMethod" value="manual" defaultChecked={!paymentConfigured}/><span><strong>Confirmation avec le vendeur</strong><small>Commande enregistrée avant paiement</small></span></label></fieldset><div className="checkout-total"><span>Total</span><strong>{formatMoney(total,cartCurrency)}</strong></div><p className="form-note">NadDigital ne demande jamais votre code PIN Mobile Money.</p><button className="primary-button full" type="submit">Créer la commande</button></form></div></div>}
 
-      {order && (
-        <div className="overlay modal-layer">
-          <div className="order-modal">
-            <button className="icon-button close-order" onClick={() => setOrder(null)} aria-label="Fermer"><X /></button>
-            <CheckCircle2 className="success-icon" size={52} />
-            <span className="eyebrow">Commande créée</span>
-            <h2>{order.id}</h2>
-            <p>Conservez ce numéro. Votre commande est actuellement <strong>{order.status.toLowerCase()}</strong>.</p>
-            <div className="payment-instructions">
-              <span>Moyen de paiement</span>
-              <strong>{order.paymentMethod?.label}</strong>
-              <small>Numéro : {order.paymentMethod?.number}</small>
-              <small>Compte : {order.paymentMethod?.accountName}</small>
-            </div>
-            {order.paymentMethod?.number === 'À configurer' && (
-              <p className="warning-note">Le numéro de paiement n’a pas encore été configuré. N’effectuez aucun paiement avant que la boutique affiche un numéro officiel.</p>
-            )}
-            <button className="secondary-button full" onClick={copyOrder}><Copy size={17} /> Copier le récapitulatif</button>
-          </div>
-        </div>
-      )}
+      {order && <div className="overlay modal-layer"><div className="order-modal"><button className="icon-button close-order" onClick={()=>setOrder(null)}><X/></button><CheckCircle2 className="success-icon" size={50}/><span className="eyebrow">Commande enregistrée</span><h2>{order.order_number}</h2><p>Total : <strong>{formatMoney(order.total,order.currency)}</strong></p><div className="payment-instructions"><span>Paiement</span><strong>{order.payment.label}</strong>{order.payment.number&&<small>Numéro : {order.payment.number}</small>}{order.payment.name&&<small>Compte : {order.payment.name}</small>}</div>{order.payment.number && order.payment_status!=='submitted' && <form className="reference-form" onSubmit={submitReference}><label>Référence de transaction<input required value={paymentReference} onChange={e=>setPaymentReference(e.target.value)} placeholder="Ex. ID de transaction"/></label><button className="primary-button full" type="submit">J’ai effectué le paiement</button></form>}<button className="secondary-button full" onClick={()=>navigator.clipboard.writeText(order.order_number)}><Copy size={17}/> Copier le numéro de commande</button>{notice&&<p className="admin-message">{notice}</p>}</div></div>}
     </div>
   )
 }
