@@ -5,6 +5,7 @@ import AdminV3 from './AdminV3.jsx'
 import './styles.css'
 import './v2.css'
 import './storefront.css'
+import './mobile-storefront.css'
 import './admin.css'
 
 function Root() {
