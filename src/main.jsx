@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
+import Storefront from './Storefront.jsx'
 import Admin from './Admin.jsx'
 import './styles.css'
 import './v2.css'
+import './storefront.css'
 import './admin.css'
 
 function Root() {
@@ -21,7 +22,7 @@ function Root() {
 
   const adminFromQuery = new URLSearchParams(window.location.search).get('admin') === '1'
   const adminFromHash = window.location.hash.startsWith('#/admin')
-  return adminFromQuery || adminFromHash ? <Admin /> : <App />
+  return adminFromQuery || adminFromHash ? <Admin /> : <Storefront key={locationKey.startsWith('#/produit/') ? locationKey : 'store'} />
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
