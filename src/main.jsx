@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import Storefront from './Storefront.jsx'
+import StorefrontV3 from './StorefrontV3.jsx'
 import AdminV3 from './AdminV3.jsx'
 import './styles.css'
 import './v2.css'
 import './storefront.css'
 import './mobile-storefront.css'
+import './checkout-v3.css'
 import './admin.css'
 
 function Root() {
@@ -23,7 +24,7 @@ function Root() {
 
   const adminFromQuery = new URLSearchParams(window.location.search).get('admin') === '1'
   const adminFromHash = window.location.hash.startsWith('#/admin')
-  return adminFromQuery || adminFromHash ? <AdminV3 /> : <Storefront key={locationKey.startsWith('#/produit/') ? locationKey : 'store'} />
+  return adminFromQuery || adminFromHash ? <AdminV3 /> : <StorefrontV3 key={locationKey.startsWith('#/produit/') ? locationKey : 'store'} />
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
