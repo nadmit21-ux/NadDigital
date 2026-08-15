@@ -7,13 +7,21 @@ import './v2.css'
 import './admin.css'
 
 function Root() {
-  const [hash, setHash] = useState(window.location.hash)
+  const [locationKey, setLocationKey] = useState(`${window.location.search}${window.location.hash}`)
+
   useEffect(() => {
-    const onHash = () => setHash(window.location.hash)
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
+    const syncLocation = () => setLocationKey(`${window.location.search}${window.location.hash}`)
+    window.addEventListener('hashchange', syncLocation)
+    window.addEventListener('popstate', syncLocation)
+    return () => {
+      window.removeEventListener('hashchange', syncLocation)
+      window.removeEventListener('popstate', syncLocation)
+    }
   }, [])
-  return hash.startsWith('#/admin') ? <Admin /> : <App />
+
+  const adminFromQuery = new URLSearchParams(window.location.search).get('admin') === '1'
+  const adminFromHash = window.location.hash.startsWith('#/admin')
+  return adminFromQuery || adminFromHash ? <Admin /> : <App />
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
