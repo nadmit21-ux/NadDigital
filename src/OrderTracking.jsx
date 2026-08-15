@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
-  ArrowLeft, Check, CheckCircle2, CircleAlert, Clock3, CreditCard,
-  FileText, PackageCheck, ReceiptText, Search, ShieldCheck, Truck,
+  ArrowLeft, Check, CheckCircle2, CircleAlert, Clock3, CreditCard, Download,
+  FileText, LockKeyhole, PackageCheck, ReceiptText, Search, ShieldCheck, Truck,
 } from 'lucide-react'
 import { supabase } from './supabase.js'
 
@@ -66,8 +66,12 @@ export default function OrderTracking() {
   const [order, setOrder] = useState(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [downloadBusy, setDownloadBusy] = useState('')
+  const [downloadMessage, setDownloadMessage] = useState('')
+  const [downloadError, setDownloadError] = useState('')
 
   const currentIndex = useMemo(() => stageIndex(order), [order])
+  const hasDownload = useMemo(() => Boolean(order?.items?.some((item) => item.download_available)), [order])
 
   const lookup = async (event) => {
     event.preventDefault()
@@ -75,6 +79,8 @@ export default function OrderTracking() {
     setBusy(true)
     setError('')
     setOrder(null)
+    setDownloadMessage('')
+    setDownloadError('')
 
     const { data, error: invokeError } = await supabase.functions.invoke('track-order', {
       body: {
@@ -91,6 +97,32 @@ export default function OrderTracking() {
 
     setOrder(data.order)
     setBusy(false)
+  }
+
+  const downloadProduct = async (item) => {
+    if (!order || downloadBusy) return
+    setDownloadBusy(item.product_id)
+    setDownloadMessage('')
+    setDownloadError('')
+
+    const { data, error: invokeError } = await supabase.functions.invoke('secure-download', {
+      body: {
+        orderNumber: order.order_number,
+        identity: identity.trim(),
+        productId: item.product_id,
+      },
+    })
+
+    if (invokeError || !data?.ok || !data?.url) {
+      setDownloadError(data?.error || invokeError?.message || 'Impossible de préparer le téléchargement.')
+      setDownloadBusy('')
+      return
+    }
+
+    const minutes = Math.max(1, Math.ceil(Number(data.expires_in || 300) / 60))
+    setDownloadMessage(`Lien sécurisé créé pour « ${item.product_title} ». Il expire dans ${minutes} minutes.`)
+    window.location.assign(data.url)
+    setDownloadBusy('')
   }
 
   return (
@@ -160,6 +192,16 @@ export default function OrderTracking() {
               {order.payment_reference && (
                 <div className="track-reference"><CreditCard size={18} /><div><span>Référence de transaction</span><strong>{order.payment_reference}</strong></div></div>
               )}
+
+              {order.payment_status === 'paid' && order.current_stage !== 'cancelled' && (
+                <div className={`track-delivery-banner ${hasDownload ? 'ready' : 'waiting'}`}>
+                  {hasDownload ? <ShieldCheck size={21} /> : <Clock3 size={21} />}
+                  <div>
+                    <strong>{hasDownload ? 'Téléchargement sécurisé disponible' : 'Fichier numérique en préparation'}</strong>
+                    <span>{hasDownload ? 'Les liens sont privés et expirent quelques minutes après leur génération.' : 'Le paiement est validé. Le bouton apparaîtra automatiquement dès que NadDigital aura attaché le fichier vendu.'}</span>
+                  </div>
+                </div>
+              )}
             </section>
 
             {order.current_stage === 'cancelled' ? (
@@ -187,11 +229,27 @@ export default function OrderTracking() {
             <section className="track-grid">
               <div className="track-panel">
                 <div className="track-section-title"><span>Contenu</span><h2>Produits commandés</h2></div>
+
+                {downloadError && <div className="track-download-feedback error"><CircleAlert size={17} /><span>{downloadError}</span></div>}
+                {downloadMessage && <div className="track-download-feedback success"><ShieldCheck size={17} /><span>{downloadMessage}</span></div>}
+
                 <div className="track-items">
                   {(order.items || []).map((item) => (
                     <div key={`${item.product_id}-${item.product_title}`}>
                       <FileText size={18} />
-                      <div><strong>{item.product_title}</strong><span>{item.quantity} × {formatMoney(item.unit_price, order.currency)}</span></div>
+                      <div className="track-item-copy">
+                        <strong>{item.product_title}</strong>
+                        <span>{item.quantity} × {formatMoney(item.unit_price, order.currency)}</span>
+                        {order.payment_status !== 'paid' ? (
+                          <small className="track-file-state locked"><LockKeyhole size={13} /> Disponible après validation du paiement</small>
+                        ) : item.download_available ? (
+                          <button className="track-download-button" disabled={downloadBusy === item.product_id} onClick={() => downloadProduct(item)}>
+                            <Download size={15} /> {downloadBusy === item.product_id ? 'Préparation…' : 'Télécharger'}
+                          </button>
+                        ) : (
+                          <small className="track-file-state waiting"><Clock3 size={13} /> Fichier en préparation</small>
+                        )}
+                      </div>
                       <b>{formatMoney(Number(item.unit_price) * Number(item.quantity), order.currency)}</b>
                     </div>
                   ))}
