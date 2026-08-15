@@ -12,6 +12,7 @@ import './checkout-v3.css'
 import './admin.css'
 import './payments.css'
 import './tracking.css'
+import './delivery.css'
 
 function Root() {
   const [locationKey, setLocationKey] = useState(`${window.location.search}${window.location.hash}`)
