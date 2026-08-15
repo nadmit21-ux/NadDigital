@@ -24,10 +24,21 @@ const slugify = (value) => value
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/(^-|-$)/g, '')
 
+const friendlyAuthError = (error) => {
+  const text = error?.message || ''
+  if (/invalid login credentials/i.test(text)) return 'Adresse ou mot de passe incorrect. Si vous n’avez pas encore défini de mot de passe, utilisez le bouton de réinitialisation.'
+  if (/email rate limit exceeded/i.test(text)) return 'Trop d’e-mails ont été demandés récemment. Attendez un moment avant de demander un nouveau message.'
+  if (/email not confirmed/i.test(text)) return 'Cette adresse e-mail n’est pas encore confirmée.'
+  return text || 'Impossible de terminer l’authentification.'
+}
+
 export default function Admin() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState('nadmit21@gmail.com')
+  const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [recoveryMode, setRecoveryMode] = useState(() => window.location.hash.includes('type=recovery'))
   const [message, setMessage] = useState('')
   const [tab, setTab] = useState('products')
   const [products, setProducts] = useState([])
@@ -37,10 +48,14 @@ export default function Admin() {
   const [coverFile, setCoverFile] = useState(null)
   const [digitalFile, setDigitalFile] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [authBusy, setAuthBusy] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession))
+    const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      setSession(nextSession)
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true)
+    })
     return () => listener.subscription.unsubscribe()
   }, [])
 
@@ -76,12 +91,42 @@ export default function Admin() {
     pending: orders.filter((o) => o.payment_status !== 'paid').length,
   }), [products, orders])
 
-  const sendMagicLink = async (event) => {
+  const loginWithPassword = async (event) => {
     event.preventDefault()
+    setAuthBusy(true)
     setMessage('')
-    const redirectTo = `${window.location.origin}${window.location.pathname}#/admin`
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
-    setMessage(error ? error.message : 'Lien de connexion envoyé. Vérifiez votre e-mail.')
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    if (error) setMessage(friendlyAuthError(error))
+    setAuthBusy(false)
+  }
+
+  const sendPasswordReset = async () => {
+    setAuthBusy(true)
+    setMessage('')
+    const redirectTo = `${window.location.origin}${window.location.pathname}?admin=1`
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo })
+    setMessage(error ? friendlyAuthError(error) : 'Un e-mail de réinitialisation a été envoyé. Ouvrez uniquement le dernier message reçu.')
+    setAuthBusy(false)
+  }
+
+  const saveNewPassword = async (event) => {
+    event.preventDefault()
+    if (newPassword.length < 8) {
+      setMessage('Choisissez un mot de passe d’au moins 8 caractères.')
+      return
+    }
+    setAuthBusy(true)
+    setMessage('')
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      setMessage(friendlyAuthError(error))
+    } else {
+      setNewPassword('')
+      setRecoveryMode(false)
+      window.history.replaceState({}, '', `${window.location.pathname}?admin=1`)
+      setMessage('Mot de passe enregistré. Les prochaines connexions se feront directement avec votre e-mail et ce mot de passe.')
+    }
+    setAuthBusy(false)
   }
 
   const uploadPublicCover = async (file, productId) => {
@@ -182,10 +227,32 @@ export default function Admin() {
           <div className="admin-lock"><ShieldCheck size={34} /></div>
           <span className="eyebrow">Espace propriétaire</span>
           <h1>Administration NadDigital</h1>
-          <p>Connexion sécurisée par lien e-mail. Les clients n’ont pas accès à cet espace.</p>
-          <form onSubmit={sendMagicLink} className="admin-login-form">
-            <label>Adresse e-mail<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="votre@email.com" /></label>
-            <button className="primary-button full" type="submit">Recevoir le lien de connexion</button>
+          <p>Connexion privée par e-mail et mot de passe. Les clients n’ont pas accès à cet espace.</p>
+          <form onSubmit={loginWithPassword} className="admin-login-form">
+            <label>Adresse e-mail<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="votre@email.com" /></label>
+            <label>Mot de passe<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Votre mot de passe" /></label>
+            <button className="primary-button full" disabled={authBusy} type="submit">{authBusy ? 'Connexion…' : 'Se connecter'}</button>
+            <button className="secondary-button full" disabled={authBusy} type="button" onClick={sendPasswordReset}>Définir / réinitialiser mon mot de passe</button>
+          </form>
+          <p className="form-note">La première fois, utilisez « Définir / réinitialiser mon mot de passe ». Après cela, aucun e-mail n’est nécessaire pour les connexions normales.</p>
+          {message && <p className="admin-message">{message}</p>}
+        </section>
+      </main>
+    )
+  }
+
+  if (recoveryMode) {
+    return (
+      <main className="admin-auth-page">
+        <a className="back-link" href="#/"><ArrowLeft size={17} /> Retour à la boutique</a>
+        <section className="admin-auth-card">
+          <div className="admin-lock"><ShieldCheck size={34} /></div>
+          <span className="eyebrow">Sécurité du propriétaire</span>
+          <h1>Définir votre mot de passe</h1>
+          <p>Vous êtes authentifié par le lien de récupération. Choisissez maintenant le mot de passe qui servira pour vos prochaines connexions.</p>
+          <form onSubmit={saveNewPassword} className="admin-login-form">
+            <label>Nouveau mot de passe<input type="password" autoComplete="new-password" minLength="8" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="8 caractères minimum" /></label>
+            <button className="primary-button full" disabled={authBusy} type="submit">{authBusy ? 'Enregistrement…' : 'Enregistrer le mot de passe'}</button>
           </form>
           {message && <p className="admin-message">{message}</p>}
         </section>
@@ -201,8 +268,8 @@ export default function Admin() {
         <a className="back-link" href="#/"><ArrowLeft size={17} /> Retour à la boutique</a>
         <section className="admin-auth-card">
           <ShieldCheck className="admin-lock" size={40} />
-          <h1>Compte connecté</h1>
-          <p>L’adresse <strong>{session.user.email}</strong> est authentifiée, mais le rôle administrateur n’est pas encore activé pour ce compte.</p>
+          <h1>Accès refusé</h1>
+          <p>L’adresse <strong>{session.user.email}</strong> est authentifiée, mais elle ne possède pas le rôle propriétaire NadDigital.</p>
           <button className="secondary-button full" onClick={() => supabase.auth.signOut()}>Se déconnecter</button>
         </section>
       </main>
