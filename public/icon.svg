@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NadDigital">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8da5ff"/>
+      <stop offset="1" stop-color="#79dfc1"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="#0b1020"/>
+  <rect x="52" y="52" width="408" height="408" rx="112" fill="url(#g)"/>
+  <path d="M151 363V149h55l101 133V149h54v214h-51L205 226v137z" fill="#08101c"/>
+</svg>
