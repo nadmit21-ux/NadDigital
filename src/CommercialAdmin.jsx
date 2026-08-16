@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  ArrowLeft, BadgeCheck, ExternalLink, Facebook, Instagram, Mail, MapPin,
-  MessageCircle, Save, Settings2, ShieldCheck, Smartphone, Youtube,
+  ArrowLeft, BadgeCheck, ExternalLink, Mail, MapPin,
+  MessageCircle, Save, Settings2, ShieldCheck, Smartphone,
 } from 'lucide-react'
 import { supabase } from './supabase.js'
 
@@ -85,9 +85,9 @@ export default function CommercialAdmin() {
 
         <div className="commercial-admin-section">
           <div className="commercial-admin-section-title"><Settings2 /><div><h2>Réseaux sociaux</h2><p>Laissez vide tout réseau que vous ne souhaitez pas afficher.</p></div></div>
-          <label><Facebook size={15} /> Facebook<input value={settings?.facebook_url || ''} onChange={(e) => setSettings({ ...settings, facebook_url: e.target.value })} placeholder="https://facebook.com/…" /></label>
-          <label><Instagram size={15} /> Instagram<input value={settings?.instagram_url || ''} onChange={(e) => setSettings({ ...settings, instagram_url: e.target.value })} placeholder="https://instagram.com/…" /></label>
-          <label><Youtube size={15} /> TikTok<input value={settings?.tiktok_url || ''} onChange={(e) => setSettings({ ...settings, tiktok_url: e.target.value })} placeholder="https://tiktok.com/@…" /></label>
+          <label><ExternalLink size={15} /> Facebook<input value={settings?.facebook_url || ''} onChange={(e) => setSettings({ ...settings, facebook_url: e.target.value })} placeholder="https://facebook.com/…" /></label>
+          <label><ExternalLink size={15} /> Instagram<input value={settings?.instagram_url || ''} onChange={(e) => setSettings({ ...settings, instagram_url: e.target.value })} placeholder="https://instagram.com/…" /></label>
+          <label><ExternalLink size={15} /> TikTok<input value={settings?.tiktok_url || ''} onChange={(e) => setSettings({ ...settings, tiktok_url: e.target.value })} placeholder="https://tiktok.com/@…" /></label>
         </div>
 
         <button className="commercial-save" type="submit" disabled={busy}><Save size={17} /> {busy ? 'Enregistrement…' : 'Enregistrer les informations publiques'}</button>
