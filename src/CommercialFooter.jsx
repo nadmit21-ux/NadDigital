@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
-  BadgeCheck, Clock3, Download, Facebook, Instagram, Mail, MapPin,
-  MessageCircle, Music2, ReceiptText, ShieldCheck, Smartphone,
+  BadgeCheck, Clock3, Download, ExternalLink, Mail, MapPin,
+  MessageCircle, ReceiptText, ShieldCheck, Smartphone,
 } from 'lucide-react'
 import { supabase } from './supabase.js'
 
@@ -21,9 +21,9 @@ export default function CommercialFooter({ compact = false }) {
   const brand = settings?.brand_name || 'NadDigital'
   const whatsapp = settings?.whatsapp ? `https://wa.me/${String(settings.whatsapp).replace(/\D/g, '')}` : ''
   const socials = [
-    settings?.facebook_url && { label: 'Facebook', href: normalizeUrl(settings.facebook_url), icon: Facebook },
-    settings?.instagram_url && { label: 'Instagram', href: normalizeUrl(settings.instagram_url), icon: Instagram },
-    settings?.tiktok_url && { label: 'TikTok', href: normalizeUrl(settings.tiktok_url), icon: Music2 },
+    settings?.facebook_url && { label: 'Facebook', href: normalizeUrl(settings.facebook_url) },
+    settings?.instagram_url && { label: 'Instagram', href: normalizeUrl(settings.instagram_url) },
+    settings?.tiktok_url && { label: 'TikTok', href: normalizeUrl(settings.tiktok_url) },
   ].filter(Boolean)
 
   return (
@@ -72,7 +72,7 @@ export default function CommercialFooter({ compact = false }) {
           </section>
         </div>
 
-        {socials.length > 0 && <div className="pro-socials">{socials.map(({ label, href, icon: Icon }) => <a key={label} href={href} target="_blank" rel="noreferrer"><Icon size={17} /> {label}</a>)}</div>}
+        {socials.length > 0 && <div className="pro-socials">{socials.map(({ label, href }) => <a key={label} href={href} target="_blank" rel="noreferrer"><ExternalLink size={17} /> {label}</a>)}</div>}
 
         <div className="pro-footer-bottom">
           <span>© {new Date().getFullYear()} {brand}. Tous droits réservés.</span>
