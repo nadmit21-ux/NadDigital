@@ -19,6 +19,7 @@ import './tracking.css'
 import './delivery.css'
 import './commercial.css'
 import './analytics.css'
+import './admin-tools.css'
 
 const COMMERCIAL_PAGES = {
   '#/a-propos': 'a-propos',
