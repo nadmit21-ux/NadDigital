@@ -1,0 +1,10 @@
+{
+  "name": "AnonBox",
+  "short_name": "AnonBox",
+  "description": "Reçois et gère tes messages anonymes.",
+  "start_url": "./?app=1",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#070a12",
+  "theme_color": "#070a12"
+}
