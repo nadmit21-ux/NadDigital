@@ -4,6 +4,9 @@ import StorefrontV3 from './StorefrontV3.jsx'
 import AdminV3 from './AdminV3.jsx'
 import PaymentsAdmin from './PaymentsAdmin.jsx'
 import OrderTracking from './OrderTracking.jsx'
+import CommercialPages from './CommercialPages.jsx'
+import CommercialFooter from './CommercialFooter.jsx'
+import CommercialAdmin from './CommercialAdmin.jsx'
 import './styles.css'
 import './v2.css'
 import './storefront.css'
@@ -13,6 +16,16 @@ import './admin.css'
 import './payments.css'
 import './tracking.css'
 import './delivery.css'
+import './commercial.css'
+
+const COMMERCIAL_PAGES = {
+  '#/a-propos': 'a-propos',
+  '#/faq': 'faq',
+  '#/conditions': 'conditions',
+  '#/confidentialite': 'confidentialite',
+  '#/remboursement-livraison': 'remboursement-livraison',
+  '#/contact': 'contact',
+}
 
 function Root() {
   const [locationKey, setLocationKey] = useState(`${window.location.search}${window.location.hash}`)
@@ -27,17 +40,27 @@ function Root() {
     }
   }, [])
 
-  const paymentRoute = window.location.hash.startsWith('#/payments')
-  const trackingRoute = window.location.hash.startsWith('#/suivi')
+  const hash = window.location.hash
+  const paymentRoute = hash.startsWith('#/payments')
+  const trackingRoute = hash.startsWith('#/suivi')
+  const commercialAdminRoute = hash.startsWith('#/commercial')
+  const commercialPage = COMMERCIAL_PAGES[hash]
   const adminFromQuery = new URLSearchParams(window.location.search).get('admin') === '1'
-  const adminFromHash = window.location.hash.startsWith('#/admin')
+  const adminFromHash = hash.startsWith('#/admin')
+  const productRoute = hash.startsWith('#/produit/')
 
   if (paymentRoute) return <PaymentsAdmin />
   if (trackingRoute) return <OrderTracking />
+  if (commercialAdminRoute) return <CommercialAdmin />
+  if (commercialPage) return <CommercialPages page={commercialPage} />
   if (adminFromQuery || adminFromHash) {
-    return <><AdminV3 /><a className="payment-hub-fab" href="#/payments">Paiements Mobile Money</a></>
+    return <><AdminV3 /><a className="payment-hub-fab" href="#/payments">Paiements Mobile Money</a><a className="commercial-hub-fab" href="#/commercial">Confiance & contacts</a></>
   }
-  return <><StorefrontV3 key={locationKey.startsWith('#/produit/') ? locationKey : 'store'} /><a className="tracking-fab" href="#/suivi">Suivre ma commande</a></>
+  return <>
+    <StorefrontV3 key={productRoute ? locationKey : 'store'} />
+    <CommercialFooter compact={productRoute} />
+    <a className="tracking-fab" href="#/suivi">Suivre ma commande</a>
+  </>
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(
