@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#070a12">
+  <meta name="description" content="AnonBox — reçois des messages anonymes ou avec profil.">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <title>AnonBox</title>
+  <style>
+    :root{--bg:#070a12;--panel:#111827;--panel2:#0d1421;--text:#f8fafc;--muted:#94a3b8;--line:#273449;--brand:#7c3aed;--brand2:#06b6d4;--ok:#34d399;--bad:#fb7185}
+    *{box-sizing:border-box}html{color-scheme:dark}body{margin:0;min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 10% 0,rgba(124,58,237,.22),transparent 30%),radial-gradient(circle at 100% 10%,rgba(6,182,212,.12),transparent 26%),var(--bg);color:var(--text)}
+    a{color:inherit}.shell{width:min(100%,900px);margin:auto;padding:22px 16px 48px}.brand{display:flex;align-items:center;gap:10px;font-weight:900;color:#ddd6fe}.brand i{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 0 22px rgba(124,58,237,.9)}
+    .hero{padding:36px 0 18px}.hero h1{font-size:clamp(34px,8vw,60px);line-height:1;letter-spacing:-2px;margin:14px 0}.hero h1 span{background:linear-gradient(105deg,#c4b5fd,#67e8f9);background-clip:text;-webkit-background-clip:text;color:transparent}.hero p{color:var(--muted);line-height:1.65;font-size:16px}
+    .card{border:1px solid rgba(148,163,184,.18);background:linear-gradient(180deg,rgba(17,24,39,.96),rgba(9,14,24,.96));border-radius:22px;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.28)}.stack{display:grid;gap:12px}.muted{color:var(--muted)}.small{font-size:12px}.tag{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:#cbd5e1;font-size:12px;background:rgba(15,23,42,.6)}
+    input,textarea{width:100%;border:1px solid var(--line);background:#090e18;color:var(--text);border-radius:14px;padding:13px 14px;font:inherit;outline:none}input:focus,textarea:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.13)}textarea{min-height:170px;resize:vertical;line-height:1.5}
+    button{border:0;border-radius:14px;padding:13px 15px;font:inherit;font-weight:800;cursor:pointer;background:linear-gradient(110deg,var(--brand),#4f46e5 58%,#0891b2);color:white}button.secondary{background:#162033;border:1px solid var(--line)}button.ghost{background:transparent;border:1px solid var(--line);color:#cbd5e1}button.danger{background:#3a1720;border:1px solid #6b2638;color:#fecdd3}button:disabled{opacity:.55;cursor:not-allowed}
+    .tabs{display:flex;gap:7px;padding:6px;border:1px solid var(--line);background:#0b111d;border-radius:16px}.tabs button{flex:1;background:transparent;color:#94a3b8;padding:10px}.tabs button.active{background:#1b2540;color:white}.status{display:none;padding:11px 13px;border-radius:12px;font-size:13px}.status.ok{display:block;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.28);color:#a7f3d0}.status.err{display:block;background:rgba(251,113,133,.1);border:1px solid rgba(251,113,133,.28);color:#fecdd3}
+    .profileHead{display:flex;align-items:center;gap:14px}.avatar{width:64px;height:64px;border-radius:18px;object-fit:cover;border:1px solid var(--line);background:#182033;display:grid;place-items:center;font-weight:900;font-size:22px}.mode{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:13px 0}.mode button{background:#121a2a;border:1px solid var(--line);color:#cbd5e1}.mode button.active{border-color:#8b5cf6;background:#251b46;color:white}.footer{padding-top:22px;text-align:center;color:#64748b;font-size:12px}.hidden{display:none!important}
+    .appTop{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.appTitle{font-weight:900;font-size:20px}.nav{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;position:sticky;bottom:10px;margin-top:16px;padding:6px;border:1px solid var(--line);background:rgba(8,12,20,.92);backdrop-filter:blur(12px);border-radius:17px}.nav button{background:transparent;color:#94a3b8;padding:10px 6px;font-size:12px}.nav button.active{background:#1b2540;color:white}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{padding:14px;border:1px solid var(--line);border-radius:16px;background:#0d1421}.stat b{font-size:26px;display:block}.message{border:1px solid var(--line);background:#0d1421;border-radius:17px;padding:15px}.message.new{border-color:#7c3aed;box-shadow:inset 3px 0 0 #7c3aed}.msgHeader{display:flex;align-items:center;gap:10px}.msgAvatar{width:40px;height:40px;border-radius:12px;object-fit:cover;background:#1b2540;display:grid;place-items:center}.msgBody{white-space:pre-wrap;word-break:break-word;line-height:1.5;margin:12px 0}.meta{display:flex;justify-content:space-between;gap:10px;align-items:center;color:#718096;font-size:12px}.contact{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:16px;padding:13px;background:#0d1421}
+    .copyLine{display:flex;gap:8px}.copyLine input{flex:1}.copyLine button{width:auto}.settingGrid{display:grid;gap:13px}.settingGrid label{display:grid;gap:7px;font-weight:700}.logoPreview{width:92px;height:92px;border-radius:24px;object-fit:cover;border:1px solid var(--line);background:#111827}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.loading{padding:36px;text-align:center;color:var(--muted)}
+    @media(max-width:620px){.shell{padding:18px 13px 34px}.stats{grid-template-columns:1fr 1fr}.hero{padding-top:28px}.card{padding:15px}.actions{grid-template-columns:1fr}.copyLine{flex-direction:column}.copyLine button{width:100%}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="brand"><i></i> AnonBox</div>
+
+    <section id="landing" class="hidden">
+      <div class="hero"><div class="tag">🕶️ Messages anonymes ou avec profil</div><h1>Un lien public. <span>Une boîte privée.</span></h1><p>Les visiteurs t’écrivent depuis leur navigateur. Toi, tu gères tout dans ton espace AnonBox.</p></div>
+      <div class="card stack"><button id="landingCreate">Créer ma boîte</button><button id="landingApp" class="secondary">Ouvrir mon espace</button></div>
+    </section>
+
+    <section id="publicView" class="hidden">
+      <div id="publicLoading" class="loading">Chargement de la boîte…</div>
+      <div id="publicBox" class="hidden">
+        <div class="hero"><div class="profileHead"><div id="ownerAvatar" class="avatar">?</div><div><div class="tag">💬 Boîte personnelle</div><h2 id="ownerName" style="margin:7px 0 0"></h2></div></div><h1 id="welcome"></h1><p id="bio"></p></div>
+        <div class="card stack">
+          <div class="mode"><button id="anonBtn" class="active">🕶️ Anonyme</button><button id="profileBtn">👤 Mon profil</button></div>
+          <div id="identityInfo" class="muted small">Ton identité ne sera pas envoyée au destinataire.</div>
+          <textarea id="messageBody" maxlength="1500" placeholder="Écris ton message…"></textarea>
+          <div class="small muted" style="text-align:right"><span id="count">0</span>/1500</div>
+          <button id="sendBtn">Envoyer</button><div id="sendStatus" class="status"></div>
+          <div class="small muted">Pas de menaces, harcèlement, informations privées ou contenu illégal. Les envois abusifs peuvent être limités techniquement.</div>
+        </div>
+        <div class="card" style="margin-top:14px"><b>Tu veux recevoir toi aussi des messages ?</b><p class="muted">Crée ton profil et obtiens ton propre lien à partager.</p><button id="createMine" class="secondary">Créer ma boîte</button></div>
+      </div>
+      <div id="publicMissing" class="hero hidden"><h1>Boîte <span>introuvable.</span></h1><p>Le lien est peut-être incorrect ou cette boîte n’existe plus.</p><button id="missingCreate">Créer ma boîte</button></div>
+    </section>
+
+    <section id="appView" class="hidden">
+      <section id="authView">
+        <div class="hero"><div class="tag">📱 Ton espace personnel</div><h1>Reçois les messages dans <span>ton application.</span></h1><p>Crée ton compte avec ton e-mail, ton nom et ton pseudonyme. Les visiteurs n’ont besoin que de ton lien.</p></div>
+        <div class="card"><div class="tabs"><button id="loginTab" class="active">Connexion</button><button id="signupTab">Créer un compte</button></div>
+          <div id="loginForm" class="stack" style="margin-top:14px"><input id="loginEmail" type="email" placeholder="E-mail"><input id="loginPassword" type="password" placeholder="Mot de passe"><button id="loginBtn">Se connecter</button></div>
+          <div id="signupForm" class="stack hidden" style="margin-top:14px"><input id="signupName" placeholder="Nom"><input id="signupPseudo" placeholder="Pseudonyme affiché"><input id="signupEmail" type="email" placeholder="E-mail"><input id="signupPassword" type="password" minlength="8" placeholder="Mot de passe (8 caractères minimum)"><button id="signupBtn">Créer mon compte</button></div>
+          <div id="authStatus" class="status" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <section id="dashboard" class="hidden">
+        <div class="appTop"><div><div class="small muted">Connecté comme</div><div id="who" class="appTitle"></div></div><button id="refresh" class="secondary">Actualiser</button></div>
+        <div id="homeTab" class="tabPage stack">
+          <div class="stats"><div class="stat"><span class="muted small">Nouveaux</span><b id="newCount">0</b></div><div class="stat"><span class="muted small">Total</span><b id="totalCount">0</b></div><div class="stat"><span class="muted small">Profils</span><b id="profileCount">0</b></div></div>
+          <div class="card"><b>Ton lien public</b><p class="muted small">C’est ce lien que tu partages sur WhatsApp.</p><div class="copyLine"><input id="shareLink" readonly><button id="copyLink">Copier</button></div><div class="actions" style="margin-top:8px"><button id="shareBtn" class="secondary">Partager</button><button id="openPublicBtn" class="ghost">Voir ma page</button></div></div>
+          <div><h3>Nouveaux messages</h3><div id="newMessages" class="stack"></div></div>
+        </div>
+        <div id="messagesTab" class="tabPage hidden"><h2>Tous les messages</h2><div id="allMessages" class="stack"></div></div>
+        <div id="contactsTab" class="tabPage hidden"><h2>Contacts</h2><p class="muted">Seuls ceux qui ont volontairement choisi « Mon profil » apparaissent ici.</p><div id="contacts" class="stack"></div></div>
+        <div id="settingsTab" class="tabPage hidden"><h2>Paramètres</h2><div class="card settingGrid"><label>Nom<input id="setName"></label><label>Pseudonyme<input id="setPseudo"></label><label>Bio<textarea id="setBio" maxlength="280" style="min-height:90px"></textarea></label><label>Image / logo<input id="avatarFile" type="file" accept="image/jpeg,image/png,image/webp"></label><img id="avatarPreview" class="logoPreview hidden" alt=""><label>Titre de la boîte<input id="setTitle"></label><label>Message d’accueil<textarea id="setWelcome" maxlength="240" style="min-height:90px"></textarea></label><label>Identifiant du lien<input id="setSlug" pattern="[a-z0-9_-]{3,32}"></label><label><span><input id="setAnon" type="checkbox" style="width:auto"> Autoriser les messages anonymes</span></label><label><span><input id="setProfile" type="checkbox" style="width:auto"> Autoriser les messages avec profil</span></label><label><span><input id="setOpen" type="checkbox" style="width:auto"> Boîte ouverte</span></label><button id="saveSettings">Enregistrer</button><button id="logout" class="danger">Se déconnecter</button></div></div>
+        <nav class="nav"><button data-tab="homeTab" class="active">✨ Nouveaux</button><button data-tab="messagesTab">💬 Messages</button><button data-tab="contactsTab">👥 Contacts</button><button data-tab="settingsTab">⚙️ Paramètres</button></nav>
+      </section>
+    </section>
+
+    <div class="footer">AnonBox • les messages anonymes n’affichent pas le compte de l’expéditeur.</div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  (function(){
+    var SUPABASE_URL='https://ugyrgvbfwvmuhsjmjtue.supabase.co';
+    var SUPABASE_KEY='sb_publishable_qHIobQFTgOOrzBttJazZQA_e5-MvmLK';
+    var API=SUPABASE_URL+'/functions/v1/anonbox-api';
+    var BASE=location.origin+location.pathname;
+    var sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    var qs=new URLSearchParams(location.search);
+    var mode=qs.get('app')==='1'?'app':(qs.has('to')?'public':'landing');
+    var session=null, profile=null, box=null, messages=[], sendMode='anonymous';
+    function $(id){return document.getElementById(id)}
+    function show(id){$(id).classList.remove('hidden')}
+    function hide(id){$(id).classList.add('hidden')}
+    function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]})}
+    function status(el,text,ok){el.className='status '+(ok?'ok':'err');el.textContent=text}
+    function randomId(){if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2)}
+    function deviceId(){var id=localStorage.getItem('anonbox_device_v3');if(!id){id=randomId();localStorage.setItem('anonbox_device_v3',id)}return id}
+    function avatarUrl(path){return path?SUPABASE_URL+'/storage/v1/object/public/anonbox-avatars/'+encodeURI(path):null}
+    async function api(payload){var r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});var d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.error||'Une erreur est survenue.');return d}
+
+    $('landingCreate').onclick=function(){location.href=BASE+'?app=1&join=1'};
+    $('landingApp').onclick=function(){location.href=BASE+'?app=1'};
+
+    if(mode==='landing'){show('landing')}
+    if(mode==='public'){show('publicView');initPublic()}
+    if(mode==='app'){show('appView');initApp()}
+
+    async function initPublic(){
+      var slug=(qs.get('to')||'').trim().toLowerCase();
+      var auth=await sb.auth.getSession();session=auth.data.session;
+      try{
+        var data=await api({action:'public-box',slug:slug});box=data;hide('publicLoading');show('publicBox');$('ownerName').textContent=data.owner.pseudonym;$('welcome').textContent=data.welcome_message;$('bio').textContent=data.owner.bio||'';
+        if(data.owner.avatar_url){$('ownerAvatar').innerHTML='<img class="avatar" src="'+esc(data.owner.avatar_url)+'" alt="">'}else{$('ownerAvatar').textContent=(data.owner.pseudonym||'?').slice(0,2).toUpperCase()}
+        $('anonBtn').disabled=!data.allow_anonymous;$('profileBtn').disabled=!data.allow_profile_messages;if(!data.allow_anonymous&&data.allow_profile_messages)selectSendMode('profile');
+      }catch(e){hide('publicLoading');show('publicMissing')}
+    }
+    function selectSendMode(m){sendMode=m;$('anonBtn').classList.toggle('active',m==='anonymous');$('profileBtn').classList.toggle('active',m==='profile');if(m==='anonymous'){$('identityInfo').textContent='Ton identité ne sera pas envoyée au destinataire.'}else if(session){$('identityInfo').textContent='Ton pseudonyme et ton image seront affichés avec le message.'}else{$('identityInfo').innerHTML='Connecte-toi ou crée un compte pour envoyer avec ton profil. <button id="inlineLogin" class="ghost" style="margin-top:8px">Se connecter</button>';setTimeout(function(){var b=$('inlineLogin');if(b)b.onclick=function(){location.href=BASE+'?app=1&returnTo='+encodeURIComponent(location.href)}},0)}}
+    $('anonBtn').onclick=function(){selectSendMode('anonymous')};$('profileBtn').onclick=function(){selectSendMode('profile')};$('messageBody').oninput=function(){$('count').textContent=String($('messageBody').value.length)};
+    $('sendBtn').onclick=async function(){var text=$('messageBody').value.trim();if(!text)return status($('sendStatus'),'Écris d’abord un message.',false);if(sendMode==='profile'&&!session){selectSendMode('profile');return}$('sendBtn').disabled=true;try{var out=await api({action:'submit',slug:(qs.get('to')||''),body:text,mode:sendMode,deviceId:deviceId(),accessToken:session?session.access_token:null});$('messageBody').value='';$('count').textContent='0';status($('sendStatus'),out.message||'Message envoyé ✓',true)}catch(e){status($('sendStatus'),e.message,false)}$('sendBtn').disabled=false};
+    $('createMine').onclick=function(){location.href=BASE+'?app=1&join=1'};$('missingCreate').onclick=function(){location.href=BASE+'?app=1&join=1'};
+
+    async function initApp(){
+      function showSignup(v){$('loginForm').classList.toggle('hidden',v);$('signupForm').classList.toggle('hidden',!v);$('loginTab').classList.toggle('active',!v);$('signupTab').classList.toggle('active',v)}
+      $('loginTab').onclick=function(){showSignup(false)};$('signupTab').onclick=function(){showSignup(true)};if(qs.get('join')==='1')showSignup(true);
+      $('signupBtn').onclick=async function(){var name=$('signupName').value.trim(),pseudo=$('signupPseudo').value.trim(),email=$('signupEmail').value.trim(),password=$('signupPassword').value;if(!name||!pseudo||!email||password.length<8)return status($('authStatus'),'Complète tous les champs. Le mot de passe doit avoir au moins 8 caractères.',false);$('signupBtn').disabled=true;var result=await sb.auth.signUp({email:email,password:password,options:{data:{display_name:name,pseudonym:pseudo},emailRedirectTo:BASE+'?app=1'}});$('signupBtn').disabled=false;if(result.error)return status($('authStatus'),result.error.message,false);if(result.data.session){session=result.data.session;await openDashboard()}else status($('authStatus'),'Compte créé. Vérifie ton e-mail si une confirmation est demandée, puis connecte-toi.',true)};
+      $('loginBtn').onclick=async function(){$('loginBtn').disabled=true;var result=await sb.auth.signInWithPassword({email:$('loginEmail').value.trim(),password:$('loginPassword').value});$('loginBtn').disabled=false;if(result.error)return status($('authStatus'),result.error.message,false);session=result.data.session;var ret=qs.get('returnTo');if(ret){location.href=ret;return}await openDashboard()};
+      var current=await sb.auth.getSession();session=current.data.session;if(session)await openDashboard();
+    }
+
+    async function openDashboard(){hide('authView');show('dashboard');await loadAll()}
+    async function loadAll(){
+      var uid=session.user.id;
+      var p=await sb.from('anonbox_profiles').select('user_id,display_name,pseudonym,handle,avatar_path,bio').eq('user_id',uid).single();
+      var b=await sb.from('anonbox_boxes').select('id,slug,title,welcome_message,is_open,allow_anonymous,allow_profile_messages').eq('owner_id',uid).single();
+      var m=await sb.from('anonbox_messages_v2').select('id,body,sender_mode,sender_user_id,sender_pseudonym_snapshot,sender_avatar_path_snapshot,created_at,read_at,deleted_at').is('deleted_at',null).order('created_at',{ascending:false}).limit(300);
+      if(p.error||b.error||m.error){alert((p.error||b.error||m.error).message);return}profile=p.data;box=b.data;messages=m.data||[];renderDashboard();
+    }
+    function renderMsg(m){var known=m.sender_mode==='profile',name=known?(m.sender_pseudonym_snapshot||'Profil'):'Anonyme',av=known?avatarUrl(m.sender_avatar_path_snapshot):null;var head=av?'<img class="msgAvatar" src="'+esc(av)+'" alt="">':'<div class="msgAvatar">'+(known?esc(name.slice(0,2).toUpperCase()):'🕶️')+'</div>';return '<article class="message '+(!m.read_at?'new':'')+'"><div class="msgHeader">'+head+'<div><b>'+esc(name)+'</b><div class="small muted">'+esc(new Date(m.created_at).toLocaleString('fr-FR'))+'</div></div></div><div class="msgBody">'+esc(m.body)+'</div><div class="meta"><span>'+(m.read_at?'Lu':'Nouveau')+'</span><button class="ghost deleteMsg" data-id="'+m.id+'">Supprimer</button></div></article>'}
+    function renderDashboard(){
+      $('who').textContent=profile.pseudonym;$('newCount').textContent=String(messages.filter(function(x){return !x.read_at}).length);$('totalCount').textContent=String(messages.length);
+      var map={};messages.filter(function(x){return x.sender_mode==='profile'&&x.sender_user_id}).forEach(function(x){map[x.sender_user_id]=x});var contacts=Object.keys(map).map(function(k){return map[k]});$('profileCount').textContent=String(contacts.length);
+      var link=BASE+'?to='+encodeURIComponent(box.slug);$('shareLink').value=link;var newItems=messages.filter(function(x){return !x.read_at});$('newMessages').innerHTML=newItems.length?newItems.map(renderMsg).join(''):'<div class="card muted">Aucun nouveau message.</div>';$('allMessages').innerHTML=messages.length?messages.map(renderMsg).join(''):'<div class="card muted">Aucun message.</div>';
+      $('contacts').innerHTML=contacts.length?contacts.map(function(c){var av=avatarUrl(c.sender_avatar_path_snapshot);return '<div class="contact">'+(av?'<img class="msgAvatar" src="'+esc(av)+'" alt="">':'<div class="msgAvatar">'+esc((c.sender_pseudonym_snapshot||'?').slice(0,2).toUpperCase())+'</div>')+'<div><b>'+esc(c.sender_pseudonym_snapshot||'Profil')+'</b><div class="small muted">A écrit avec son profil</div></div></div>'}).join(''):'<div class="card muted">Aucun expéditeur identifié pour le moment.</div>';
+      document.querySelectorAll('.deleteMsg').forEach(function(btn){btn.onclick=function(){removeMsg(Number(btn.getAttribute('data-id')))}});
+      $('setName').value=profile.display_name||'';$('setPseudo').value=profile.pseudonym||'';$('setBio').value=profile.bio||'';$('setTitle').value=box.title||'';$('setWelcome').value=box.welcome_message||'';$('setSlug').value=box.slug;$('setAnon').checked=!!box.allow_anonymous;$('setProfile').checked=!!box.allow_profile_messages;$('setOpen').checked=!!box.is_open;if(profile.avatar_path){$('avatarPreview').src=avatarUrl(profile.avatar_path);show('avatarPreview')}
+    }
+    async function removeMsg(id){if(!confirm('Supprimer ce message ?'))return;var r=await sb.from('anonbox_messages_v2').update({deleted_at:new Date().toISOString()}).eq('id',id);if(r.error)return alert(r.error.message);messages=messages.filter(function(m){return m.id!==id});renderDashboard()}
+    async function markCurrentRead(){var ids=messages.filter(function(m){return !m.read_at}).map(function(m){return m.id});if(!ids.length)return;var now=new Date().toISOString();var r=await sb.from('anonbox_messages_v2').update({read_at:now}).in('id',ids);if(!r.error)messages=messages.map(function(m){if(ids.indexOf(m.id)>=0)m.read_at=now;return m})}
+    $('refresh').onclick=async function(){await loadAll();await markCurrentRead();renderDashboard()};
+    document.querySelectorAll('.nav button').forEach(function(btn){btn.onclick=async function(){document.querySelectorAll('.tabPage').forEach(function(p){p.classList.add('hidden')});show(btn.getAttribute('data-tab'));document.querySelectorAll('.nav button').forEach(function(x){x.classList.remove('active')});btn.classList.add('active');if(btn.getAttribute('data-tab')==='homeTab'){await markCurrentRead()}}});
+    $('copyLink').onclick=async function(){var value=$('shareLink').value;try{await navigator.clipboard.writeText(value)}catch(e){$('shareLink').select();document.execCommand('copy')}$('copyLink').textContent='Copié ✓';setTimeout(function(){$('copyLink').textContent='Copier'},1200)};
+    $('shareBtn').onclick=async function(){var link=$('shareLink').value;if(navigator.share){try{await navigator.share({title:'Ma boîte AnonBox',text:'Envoie-moi un message sur AnonBox',url:link});return}catch(e){}}location.href='https://wa.me/?text='+encodeURIComponent('Envoie-moi un message anonymement : '+link)};
+    $('openPublicBtn').onclick=function(){location.href=$('shareLink').value};
+    $('avatarFile').onchange=async function(e){var file=e.target.files&&e.target.files[0];if(!file)return;if(file.size>3145728)return alert('Image trop lourde : maximum 3 Mo.');if(['image/jpeg','image/png','image/webp'].indexOf(file.type)<0)return alert('Format accepté : JPG, PNG ou WebP.');var ext=file.type==='image/png'?'png':(file.type==='image/webp'?'webp':'jpg');var path=session.user.id+'/avatar-'+Date.now()+'.'+ext;var r=await sb.storage.from('anonbox-avatars').upload(path,file,{contentType:file.type,upsert:false});if(r.error)return alert(r.error.message);profile.avatar_path=path;$('avatarPreview').src=avatarUrl(path);show('avatarPreview')};
+    $('saveSettings').onclick=async function(){var slug=$('setSlug').value.trim().toLowerCase();if(!/^[a-z0-9][a-z0-9_-]{2,31}$/.test(slug))return alert('L’identifiant doit contenir 3 à 32 caractères : lettres minuscules, chiffres, _ ou -.');if(!$('setAnon').checked&&!$('setProfile').checked)return alert('Active au moins un mode d’envoi.');$('saveSettings').disabled=true;var p=await sb.from('anonbox_profiles').update({display_name:$('setName').value.trim(),pseudonym:$('setPseudo').value.trim(),bio:$('setBio').value.trim(),avatar_path:profile.avatar_path,updated_at:new Date().toISOString()}).eq('user_id',session.user.id);var b=await sb.from('anonbox_boxes').update({slug:slug,title:$('setTitle').value.trim(),welcome_message:$('setWelcome').value.trim(),allow_anonymous:$('setAnon').checked,allow_profile_messages:$('setProfile').checked,is_open:$('setOpen').checked,updated_at:new Date().toISOString()}).eq('owner_id',session.user.id);$('saveSettings').disabled=false;if(p.error||b.error)return alert((p.error||b.error).message);await loadAll();alert('Paramètres enregistrés ✓')};
+    $('logout').onclick=async function(){await sb.auth.signOut();location.href=BASE+'?app=1'};
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(function(){});
+  })();
+  </script>
+</body>
+</html>
