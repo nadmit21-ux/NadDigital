@@ -7,6 +7,7 @@ import OrderTracking from './OrderTracking.jsx'
 import CommercialPages from './CommercialPages.jsx'
 import CommercialFooter from './CommercialFooter.jsx'
 import CommercialAdmin from './CommercialAdmin.jsx'
+import AnalyticsAdmin from './AnalyticsAdmin.jsx'
 import './styles.css'
 import './v2.css'
 import './storefront.css'
@@ -17,6 +18,7 @@ import './payments.css'
 import './tracking.css'
 import './delivery.css'
 import './commercial.css'
+import './analytics.css'
 
 const COMMERCIAL_PAGES = {
   '#/a-propos': 'a-propos',
@@ -44,6 +46,7 @@ function Root() {
   const paymentRoute = hash.startsWith('#/payments')
   const trackingRoute = hash.startsWith('#/suivi')
   const commercialAdminRoute = hash.startsWith('#/commercial')
+  const analyticsRoute = hash.startsWith('#/analytics')
   const commercialPage = COMMERCIAL_PAGES[hash]
   const adminFromQuery = new URLSearchParams(window.location.search).get('admin') === '1'
   const adminFromHash = hash.startsWith('#/admin')
@@ -52,9 +55,10 @@ function Root() {
   if (paymentRoute) return <PaymentsAdmin />
   if (trackingRoute) return <OrderTracking />
   if (commercialAdminRoute) return <CommercialAdmin />
+  if (analyticsRoute) return <AnalyticsAdmin />
   if (commercialPage) return <CommercialPages page={commercialPage} />
   if (adminFromQuery || adminFromHash) {
-    return <><AdminV3 /><a className="payment-hub-fab" href="#/payments">Paiements Mobile Money</a><a className="commercial-hub-fab" href="#/commercial">Confiance & contacts</a></>
+    return <><AdminV3 /><div className="admin-tools-stack"><a className="analytics-hub-fab" href="#/analytics">Statistiques</a><a className="payment-hub-fab" href="#/payments">Paiements Mobile Money</a><a className="commercial-hub-fab" href="#/commercial">Confiance & contacts</a></div></>
   }
   return <>
     <StorefrontV3 key={productRoute ? locationKey : 'store'} />
