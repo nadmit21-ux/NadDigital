@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   BadgeCheck, Clock3, Download, Facebook, Instagram, Mail, MapPin,
-  MessageCircle, ReceiptText, ShieldCheck, Smartphone, Youtube,
+  MessageCircle, Music2, ReceiptText, ShieldCheck, Smartphone,
 } from 'lucide-react'
 import { supabase } from './supabase.js'
 
@@ -23,7 +23,7 @@ export default function CommercialFooter({ compact = false }) {
   const socials = [
     settings?.facebook_url && { label: 'Facebook', href: normalizeUrl(settings.facebook_url), icon: Facebook },
     settings?.instagram_url && { label: 'Instagram', href: normalizeUrl(settings.instagram_url), icon: Instagram },
-    settings?.tiktok_url && { label: 'TikTok', href: normalizeUrl(settings.tiktok_url), icon: Youtube },
+    settings?.tiktok_url && { label: 'TikTok', href: normalizeUrl(settings.tiktok_url), icon: Music2 },
   ].filter(Boolean)
 
   return (
@@ -80,6 +80,7 @@ export default function CommercialFooter({ compact = false }) {
           <a href="#/admin">Espace propriétaire</a>
         </div>
       </footer>
+      {whatsapp && !compact && <a className="whatsapp-trust-fab" href={`${whatsapp}?text=${encodeURIComponent('Bonjour NadDigital, j’ai une question concernant votre boutique.')}`} target="_blank" rel="noreferrer"><MessageCircle size={17} /> WhatsApp</a>}
     </div>
   )
 }
