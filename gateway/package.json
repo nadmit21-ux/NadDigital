@@ -1,0 +1,13 @@
+{
+  "name": "naddigital-airtel-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Static-IP gateway between NadDigital Supabase and Airtel Money APIs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
