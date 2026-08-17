@@ -1,0 +1,33 @@
+primary_region = "jnb"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  DRY_RUN = "true"
+  AIRTEL_BASE_URL = "https://openapiuat.airtel.cd"
+  AIRTEL_PAYMENT_PATH = "/merchant/v2/payments/"
+  AIRTEL_COUNTRY = "CD"
+  AIRTEL_DEFAULT_CURRENCY = "USD"
+  AIRTEL_MESSAGE_SIGNING = "false"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_start_machines = true
+  auto_stop_machines = false
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "256mb"
