@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta name="theme-color" content="#070b14">
+  <title>Lecture privée</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#070b14;color:#eef2ff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{min-height:100vh;display:grid;place-items:center;padding:22px}.card{width:min(100%,620px);background:linear-gradient(180deg,#101827,#0c1320);border:1px solid #243047;border-radius:24px;padding:28px;box-shadow:0 28px 80px #0009}.badge{display:inline-flex;gap:8px;align-items:center;padding:7px 11px;border-radius:999px;background:#172033;color:#cbd5e1;font-size:.82rem;font-weight:700}.dot{width:8px;height:8px;border-radius:50%;background:#22c55e}h1{font-size:clamp(1.65rem,6vw,2.25rem);margin:18px 0 9px;line-height:1.12}p{color:#aebbd0;line-height:1.55;margin:0 0 18px}.code{width:100%;height:64px;border-radius:16px;border:1px solid #34435e;background:#080e19;color:#fff;font-size:2rem;font-weight:800;letter-spacing:.55em;text-align:center;padding-left:.55em;outline:none}.code:focus{border-color:#8799b8;box-shadow:0 0 0 4px #64748b26}.btn{width:100%;margin-top:14px;height:54px;border:0;border-radius:14px;background:#f8fafc;color:#0f172a;font-size:1rem;font-weight:850;cursor:pointer}.btn[disabled]{opacity:.55;cursor:not-allowed}.note{margin-top:14px;padding:12px 14px;border-radius:13px;border:1px solid #26334a;background:#0a111e;color:#8492a9;font-size:.88rem;line-height:1.5}.error{display:none;margin-top:14px;padding:12px 14px;border:1px solid #7f1d1d;border-radius:13px;background:#3a1519;color:#fecaca}.player{display:none}.player video{width:100%;max-height:72vh;background:#000;border-radius:16px;display:block}.status{margin-top:12px;color:#9fb0c9;font-size:.9rem}.small{margin-top:18px;text-align:center;color:#59677d;font-size:.78rem}
+  </style>
+</head>
+<body>
+<main class="card">
+  <section id="gate">
+    <div class="badge"><span class="dot"></span> Lecture protégée</div>
+    <h1>Entrer le code</h1>
+    <p>Cette vidéo est protégée par un code à 4 chiffres. Chaque code devient inutilisable après sa première validation correcte.</p>
+    <form id="codeForm" autocomplete="off">
+      <input id="code" class="code" type="tel" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" aria-label="Code à 4 chiffres" required>
+      <button id="unlock" class="btn" type="submit">Déverrouiller la vidéo</button>
+    </form>
+    <div class="note">Après plusieurs codes incorrects, les essais peuvent être temporairement bloqués.</div>
+    <div id="error" class="error"></div>
+  </section>
+  <section id="player" class="player">
+    <div class="badge"><span class="dot"></span> Accès autorisé</div>
+    <h1>Lecture privée</h1>
+    <video id="video" controls playsinline preload="metadata"></video>
+    <div id="status" class="status">La session de lecture reste valable temporairement sur ce navigateur.</div>
+  </section>
+  <div class="small">NadDigital · accès privé</div>
+</main>
+<script>
+(() => {
+  const ACCESS_ID='v_FyBh4F1v8Q34';
+  const API='https://ugyrgvbfwvmuhsjmjtue.supabase.co/functions/v1/video-code';
+  const gate=document.getElementById('gate'),player=document.getElementById('player'),form=document.getElementById('codeForm'),input=document.getElementById('code'),button=document.getElementById('unlock'),errorBox=document.getElementById('error'),video=document.getElementById('video'),status=document.getElementById('status');
+  function showPlayer(url,expiresAt){gate.style.display='none';player.style.display='block';video.src=url;if(expiresAt){const d=new Date(expiresAt);if(!Number.isNaN(d.getTime()))status.textContent='Session de lecture active jusqu’à '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' sur ce navigateur.';}video.load();}
+  try{const saved=JSON.parse(sessionStorage.getItem('nad_private_video_session')||'null');if(saved?.url&&saved?.expiresAt&&Date.parse(saved.expiresAt)>Date.now())showPlayer(saved.url,saved.expiresAt);}catch(_){}
+  input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,4)});
+  form.addEventListener('submit',async e=>{e.preventDefault();errorBox.style.display='none';const code=input.value.trim();if(!/^\d{4}$/.test(code)){errorBox.textContent='Entre exactement 4 chiffres.';errorBox.style.display='block';return;}button.disabled=true;button.textContent='Vérification…';try{const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_id:ACCESS_ID,code})});let data={};try{data=await response.json()}catch(_){}if(!response.ok||!data.stream_url)throw new Error(data.error||'Impossible de vérifier le code.');sessionStorage.setItem('nad_private_video_session',JSON.stringify({url:data.stream_url,expiresAt:data.expires_at}));showPlayer(data.stream_url,data.expires_at);video.play().catch(()=>{});}catch(err){errorBox.textContent=err?.message||'Erreur de connexion.';errorBox.style.display='block';button.disabled=false;button.textContent='Déverrouiller la vidéo';input.select();}});
+  video.addEventListener('error',()=>{status.textContent='La vidéo n’a pas pu être chargée. Vérifie la connexion puis réessaie sans actualiser la page.'});
+})();
+</script>
+</body>
+</html>
